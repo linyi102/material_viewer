@@ -50,14 +50,13 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
         sha1.convert(utf8.encode(p.basename(widget.file.path))).toString();
     final nameShortHash = nameHash.substring(0, 8.clamp(0, nameHash.length));
     final outputDirPath = p.join(cacheDir.path, 'thumbnail', 'video');
-    final fileAndThumbnailInfo =
-        '文件路径：${widget.file.path}\n缩略图路径：$outputDirPath';
+    final output = p.join(
+      outputDirPath,
+      '${nameShortHash}_${mTime}_$byteSize.$format',
+    );
+    final fileAndThumbnailInfo = '文件路径：${widget.file.path}\n缩略图路径：$output';
 
     try {
-      final output = p.join(
-        outputDirPath,
-        '${nameShortHash}_${mTime}_$byteSize.$format',
-      );
       if (await File(output).exists()) {
         logger.info('获取视频缓存缩略图\n$fileAndThumbnailInfo', tag: logTag);
         return output;
