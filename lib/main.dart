@@ -1,27 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
+import 'package:material_viewer/pages/settings_page.dart';
+import 'package:material_viewer/providers/theme_provider.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Hive.init((await getApplicationDocumentsDirectory()).path);
+  await Hive.openBox('settings');
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ResponsiveApp(
       builder: (context) => MaterialApp(
         title: 'Flutter Demo',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-          fontFamilyFallback: const ['HarmonyOS Sans SC', 'Microsoft YaHei'],
-        ),
+        theme: generateTheme(),
+        darkTheme: generateTheme(isDark: true),
+        themeMode: ref.watch(themeModeProvider),
         home: const MyHomePage(),
       ),
     );
   }
+
+  ThemeData generateTheme({bool isDark = false}) => ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: isDark ? Brightness.dark : Brightness.light,
+        ),
+        useMaterial3: true,
+        fontFamilyFallback: const ['HarmonyOS Sans SC', 'Microsoft YaHei'],
+      );
 }
 
 class MyHomePage extends StatefulWidget {
@@ -58,6 +74,12 @@ class _MyHomePageState extends State<MyHomePage> {
       'icon': const Icon(Icons.video_collection_outlined),
       'selected_icon': const Icon(Icons.video_collection),
     },
+    {
+      'label': '设置',
+      'icon': const Icon(Icons.settings_outlined),
+      'selected_icon': const Icon(Icons.settings),
+      'build_page': () => const SettingsPage(),
+    }
   ];
   int selectedIndex = 0;
   bool isExtended = false;
@@ -82,7 +104,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildBody() {
-    return const Scaffold();
+    final tab = tabs[selectedIndex];
+    final buildPage = tab['build_page'];
+    return buildPage is Function
+        ? buildPage()
+        : Center(child: Text(tab['label'] as String));
   }
 
   NavigationBar _buildBottomBar() {
@@ -122,7 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Text(
                 'VIEWER',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 2,
                     ),
@@ -148,7 +174,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return NavigationRail(
       labelType: NavigationRailLabelType.all,
       // extended: true,
-      elevation: 100,
       destinations: [
         ...List.generate(tabs.length, (index) {
           final tab = tabs[index];
