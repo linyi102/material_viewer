@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,14 +10,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-        fontFamilyFallback: const ['HarmonyOS Sans SC', 'Microsoft YaHei'],
+    return ResponsiveApp(
+      builder: (context) => MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+          fontFamilyFallback: const ['HarmonyOS Sans SC', 'Microsoft YaHei'],
+        ),
+        home: const MyHomePage(),
       ),
-      home: const MyHomePage(),
     );
   }
 }
@@ -61,14 +64,45 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          isExtended ? _buildDrawer() : _buildRail(),
-          if (!isExtended) const VerticalDivider(width: 0.8),
-          const Expanded(child: Scaffold()),
-        ],
+    return ScreenTypeLayout.builder(
+      mobile: (_) => Scaffold(
+        body: _buildBody(),
+        bottomNavigationBar: _buildBottomBar(),
       ),
+      tablet: (_) => Scaffold(
+        body: Row(
+          children: [
+            isExtended ? _buildDrawer() : _buildRail(),
+            if (!isExtended) const VerticalDivider(width: 0.8),
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return const Scaffold();
+  }
+
+  NavigationBar _buildBottomBar() {
+    return NavigationBar(
+      selectedIndex: selectedIndex,
+      onDestinationSelected: (value) {
+        setState(() {
+          selectedIndex = value;
+        });
+      },
+      destinations: [
+        ...List.generate(tabs.length, (index) {
+          final tab = tabs[index];
+          return NavigationDestination(
+            icon: tab[selectedIndex == index ? 'selected_icon' : 'icon']
+                as Widget,
+            label: tab['label'] as String,
+          );
+        })
+      ],
     );
   }
 
