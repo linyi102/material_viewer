@@ -1,20 +1,28 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_logkit/logkit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:material_viewer/pages/root_page.dart';
 import 'package:material_viewer/providers/theme_provider.dart';
+import 'package:material_viewer/utils/logger.dart';
 import 'package:material_viewer/utils/platform.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:window_manager/window_manager.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  Hive.init((await getApplicationDocumentsDirectory()).path);
-  await Hive.openBox('settings');
-  await _prepareWindow();
+void main() {
+  runLogkitZonedGuarded(logger, () async {
+    logger.info(
+        '${Platform.resolvedExecutable}\nArguments:${Platform.executableArguments.toString()}');
+    WidgetsFlutterBinding.ensureInitialized();
+    Hive.init((await getApplicationDocumentsDirectory()).path);
+    await Hive.openBox('settings');
+    await _prepareWindow();
 
-  runApp(const ProviderScope(child: MyApp()));
+    runApp(const ProviderScope(child: MyApp()));
+  });
 }
 
 Future<void> _prepareWindow() async {
@@ -46,7 +54,11 @@ class MyApp extends ConsumerWidget {
         theme: generateTheme(),
         darkTheme: generateTheme(isDark: true),
         themeMode: themeMode,
-        home: const RootPage(),
+        debugShowCheckedModeBanner: false,
+        home: LogkitOverlayAttacher(
+          logger: logger,
+          child: const RootPage(),
+        ),
       ),
     );
   }
