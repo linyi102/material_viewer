@@ -1,12 +1,8 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -66,15 +62,23 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
         return output;
       }
       await Directory(outputDirPath).create(recursive: true);
-      final success = await compute(
-        _generateVideoThumbnail,
-        _SendMessage(
-            token: RootIsolateToken.instance!,
-            filePath: widget.file.path,
-            output: output,
-            format: format),
+
+      final result = await Process.run(
+        p.join(p.dirname(Platform.resolvedExecutable), 'data', 'bin', 'ffmpeg.exe'),
+        [
+          '-ss',
+          '00:00:01.00',
+          '-i',
+          (widget.file.path),
+          '-y',
+          '-vf',
+          'scale=600:600/a',
+          '-vframes',
+          '1',
+          output,
+        ],
       );
-      if (success) {
+      if (result.exitCode == 0) {
         logger.info('生成视频缓存缩略图成功\n$fileAndThumbnailInfo');
         return output;
       } else {
@@ -93,31 +97,4 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
   Widget build(BuildContext context) {
     return widget.builder(thumbnail);
   }
-}
-
-Future<bool> _generateVideoThumbnail(_SendMessage message) async {
-  BackgroundIsolateBinaryMessenger.ensureInitialized(message.token);
-
-  final plugin = FcNativeVideoThumbnail();
-  return plugin.getVideoThumbnail(
-    srcFile: message.filePath,
-    destFile: message.output,
-    width: 300,
-    height: 300,
-    format: message.format,
-    quality: 90,
-  );
-}
-
-class _SendMessage {
-  RootIsolateToken token;
-  String filePath;
-  String output;
-  String format;
-  _SendMessage({
-    required this.token,
-    required this.filePath,
-    required this.output,
-    required this.format,
-  });
 }
