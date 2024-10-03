@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_viewer/pages/file_browser/file_browser.dart';
 import 'package:material_viewer/pages/settings_page.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:window_manager/window_manager.dart';
@@ -16,6 +17,7 @@ class _RootPageState extends State<RootPage> {
       'label': '文件',
       'icon': const Icon(Icons.folder_open),
       'selected_icon': const Icon(Icons.folder),
+      'build_page': () => const FileBrowser(),
     },
     {
       'label': '最近',

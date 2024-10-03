@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:material_viewer/pages/root_page.dart';
 import 'package:material_viewer/providers/theme_provider.dart';
+import 'package:material_viewer/utils/keyboard.dart';
 import 'package:material_viewer/utils/logger.dart';
 import 'package:material_viewer/utils/platform.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:responsive_builder/responsive_builder.dart';
 import 'package:window_manager/window_manager.dart';
@@ -17,6 +19,7 @@ void main() {
     logger.info(
         '${Platform.resolvedExecutable}\nArguments:${Platform.executableArguments.toString()}');
     WidgetsFlutterBinding.ensureInitialized();
+    MediaKit.ensureInitialized();
     Hive.init((await getApplicationDocumentsDirectory()).path);
     await Hive.openBox('settings');
     await _prepareWindow();
@@ -59,6 +62,10 @@ class MyApp extends ConsumerWidget {
           logger: logger,
           child: const RootPage(),
         ),
+        builder: (context, child) => GestureDetector(
+          onTap: () => KeyboardUtil.removeFocus,
+          child: child,
+        ),
       ),
     );
   }
@@ -70,5 +77,10 @@ class MyApp extends ConsumerWidget {
         ),
         useMaterial3: true,
         fontFamilyFallback: const ['HarmonyOS Sans SC', 'Microsoft YaHei'],
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+        ),
+        cardTheme: const CardTheme(elevation: 0),
       );
 }
