@@ -1,12 +1,18 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:fc_native_video_thumbnail/fc_native_video_thumbnail.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:material_viewer/utils/logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import 'package:material_viewer/utils/logger.dart';
+
+const _logTag = 'VideoThumbnail';
 
 class VideoThumbnail extends StatefulWidget {
   const VideoThumbnail({
@@ -23,7 +29,6 @@ class VideoThumbnail extends StatefulWidget {
 
 class _VideoThumbnailState extends State<VideoThumbnail> {
   File? thumbnail;
-  final logTag = 'VideoThumbnail';
 
   @override
   void initState() {
@@ -32,16 +37,15 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
   }
 
   Future<void> loadThumbnail() async {
-    String? path = await getThumbnail();
+    String? path = await _getThumbnail();
     if (path != null) {
       thumbnail = File(path);
       if (mounted) setState(() {});
     }
   }
 
-  Future<String?> getThumbnail() async {
+  Future<String?> _getThumbnail() async {
     final cacheDir = await getApplicationCacheDirectory();
-    final plugin = FcNativeVideoThumbnail();
     const format = 'jpeg';
     final stat = await widget.file.stat();
     final mTime = stat.modified.millisecondsSinceEpoch;
@@ -58,25 +62,29 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
 
     try {
       if (await File(output).exists()) {
-        logger.info('获取视频缓存缩略图\n$fileAndThumbnailInfo', tag: logTag);
+        logger.info('获取视频缓存缩略图\n$fileAndThumbnailInfo', tag: _logTag);
         return output;
       }
       await Directory(outputDirPath).create(recursive: true);
-      final success = await plugin.getVideoThumbnail(
-        srcFile: widget.file.path,
-        destFile: output,
-        width: 300,
-        height: 300,
-        format: format,
-        quality: 90,
+      final success = await compute(
+        _generateVideoThumbnail,
+        _SendMessage(
+            token: RootIsolateToken.instance!,
+            filePath: widget.file.path,
+            output: output,
+            format: format),
       );
-      success
-          ? logger.info('生成视频缓存缩略图成功\n$fileAndThumbnailInfo')
-          : logger.error('生成视频缓存缩略图失败\n$fileAndThumbnailInfo');
-      return success ? output : null;
+      if (success) {
+        logger.info('生成视频缓存缩略图成功\n$fileAndThumbnailInfo');
+        return output;
+      } else {
+        logger.error('生成视频缓存缩略图失败\n$fileAndThumbnailInfo');
+        return null;
+      }
     } catch (err, stack) {
+      // compute的方法抛出的异常也会被此处捕获
       logger.error('生成视频缩略图报错\n$fileAndThumbnailInfo',
-          error: err, stackTrace: stack, tag: logTag);
+          error: err, stackTrace: stack, tag: _logTag);
     }
     return null;
   }
@@ -85,4 +93,31 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
   Widget build(BuildContext context) {
     return widget.builder(thumbnail);
   }
+}
+
+Future<bool> _generateVideoThumbnail(_SendMessage message) async {
+  BackgroundIsolateBinaryMessenger.ensureInitialized(message.token);
+
+  final plugin = FcNativeVideoThumbnail();
+  return plugin.getVideoThumbnail(
+    srcFile: message.filePath,
+    destFile: message.output,
+    width: 300,
+    height: 300,
+    format: message.format,
+    quality: 90,
+  );
+}
+
+class _SendMessage {
+  RootIsolateToken token;
+  String filePath;
+  String output;
+  String format;
+  _SendMessage({
+    required this.token,
+    required this.filePath,
+    required this.output,
+    required this.format,
+  });
 }
