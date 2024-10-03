@@ -63,6 +63,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
               child: FileThumbnail(file: file.raw, type: file.type),
             ),
           ),
+          visualDensity: VisualDensity.standard,
           title: Text(
             p.basename(file.path),
             maxLines: 1,
