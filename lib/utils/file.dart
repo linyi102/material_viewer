@@ -19,4 +19,17 @@ class FileUtil {
     final parent = directory.parent;
     return parent.path == '.' || parent.path == directory.path;
   }
+
+  static String getReadableSize(int size) {
+    int kb = 1024, mb = 1048576, gb = 1073741824;
+    if (size < kb) {
+      return "${size}B";
+    } else if (size < mb) {
+      return "${(size / kb).toStringAsFixed(2)}KB";
+    } else if (size < gb) {
+      return "${(size / mb).toStringAsFixed(2)}MB";
+    } else {
+      return "${(size / gb).toStringAsFixed(2)}GB";
+    }
+  }
 }

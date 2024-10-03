@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:material_viewer/enums/file_type.dart';
 import 'package:material_viewer/models/file_entity.dart';
 import 'package:material_viewer/pages/file_browser/widgets/file_thumbnail.dart';
 import 'package:material_viewer/pages/file_browser/widgets/path_breadcrumb.dart';
 import 'package:material_viewer/pages/video_player/video_player.dart';
 import 'package:material_viewer/providers/files_provider.dart';
+import 'package:material_viewer/utils/file.dart';
 import 'package:material_viewer/utils/windows.dart';
 import 'package:material_viewer/widgets/data_status_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,13 +68,27 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          subtitle: file.isDisk
-              ? null
-              : Text(
-                  file.path,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 150,
+                child: Text(
+                  DateFormat('yyyy-MM-dd hh:mm:ss').format(file.stat.modified),
+                  textAlign: TextAlign.left,
                 ),
+              ),
+              SizedBox(
+                width: 80,
+                child: file.isFile
+                    ? Text(
+                        FileUtil.getReadableSize(file.stat.size),
+                        textAlign: TextAlign.right,
+                      )
+                    : null,
+              ),
+            ],
+          ),
           onTap: () {
             if (file.isDirectory) {
               ref.read(filesProvider.notifier).enterDirectory(file.path);

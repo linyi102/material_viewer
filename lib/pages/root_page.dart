@@ -47,7 +47,7 @@ class _RootPageState extends State<RootPage> {
     }
   ];
   int selectedIndex = 0;
-  bool isExtended = false;
+  bool isExtended = true;
 
   @override
   Widget build(BuildContext context) {
