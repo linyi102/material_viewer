@@ -3,12 +3,10 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:material_viewer/utils/thumbnail.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-
 import 'package:material_viewer/utils/logger.dart';
-
-const _logTag = 'VideoThumbnail';
 
 class VideoThumbnail extends StatefulWidget {
   const VideoThumbnail({
@@ -25,6 +23,7 @@ class VideoThumbnail extends StatefulWidget {
 
 class _VideoThumbnailState extends State<VideoThumbnail> {
   File? thumbnail;
+  final logTag = 'VideoThumbnail';
 
   @override
   void initState() {
@@ -58,27 +57,14 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
 
     try {
       if (await File(output).exists()) {
-        logger.info('获取视频缓存缩略图\n$fileAndThumbnailInfo', tag: _logTag);
+        logger.info('获取视频缓存缩略图\n$fileAndThumbnailInfo', tag: logTag);
         return output;
       }
       await Directory(outputDirPath).create(recursive: true);
 
-      final result = await Process.run(
-        p.join(p.dirname(Platform.resolvedExecutable), 'data', 'bin', 'ffmpeg.exe'),
-        [
-          '-ss',
-          '00:00:01.00',
-          '-i',
-          (widget.file.path),
-          '-y',
-          '-vf',
-          'scale=600:600/a',
-          '-vframes',
-          '1',
-          output,
-        ],
-      );
-      if (result.exitCode == 0) {
+      final success = await ThumbnailUtil.generateVideoThumbnail(
+          filePath: widget.file.path, output: output);
+      if (success) {
         logger.info('生成视频缓存缩略图成功\n$fileAndThumbnailInfo');
         return output;
       } else {
@@ -86,9 +72,8 @@ class _VideoThumbnailState extends State<VideoThumbnail> {
         return null;
       }
     } catch (err, stack) {
-      // compute的方法抛出的异常也会被此处捕获
       logger.error('生成视频缩略图报错\n$fileAndThumbnailInfo',
-          error: err, stackTrace: stack, tag: _logTag);
+          error: err, stackTrace: stack, tag: logTag);
     }
     return null;
   }
