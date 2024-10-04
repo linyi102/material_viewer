@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:material_viewer/utils/logger.dart';
 import 'package:material_viewer/utils/toast_util.dart';
 
 class WindowsUtil {
@@ -29,6 +30,31 @@ class WindowsUtil {
       if (context.mounted) {
         ToastUtil.showMessage(context, 'Open $path error: $e');
       }
+      return false;
+    }
+  }
+
+  /// 文件资源管理器打开文件夹
+  static Future<bool> openFolder(String path) async {
+    try {
+      final result = await Process.run('cmd', ['/c', 'explorer', path]);
+      final isSuccess = result.exitCode == 0;
+      return isSuccess;
+    } catch (err, stack) {
+      logger.error('打开文件夹 $path 失败：$err', stackTrace: stack);
+      return false;
+    }
+  }
+
+  /// 文件资源管理器定位文件
+  static Future<bool> locateFile(String path) async {
+    try {
+      final result =
+          await Process.run('cmd', ['/c', 'explorer', '/select,', path]);
+      final isSuccess = result.exitCode == 0;
+      return isSuccess;
+    } catch (err, stack) {
+      logger.error('定位文件 $path 失败：$err', stackTrace: stack);
       return false;
     }
   }

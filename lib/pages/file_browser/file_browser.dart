@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:material_viewer/enums/file_type.dart';
-import 'package:material_viewer/models/file_entity.dart';
-import 'package:material_viewer/pages/file_browser/widgets/file_thumbnail.dart';
+import 'package:material_viewer/pages/file_browser/widgets/files_view.dart';
 import 'package:material_viewer/pages/file_browser/widgets/path_breadcrumb.dart';
-import 'package:material_viewer/pages/video_player/video_player.dart';
 import 'package:material_viewer/providers/files_provider.dart';
-import 'package:material_viewer/utils/file.dart';
+import 'package:material_viewer/providers/files_ui_provider.dart';
+import 'package:material_viewer/providers/path_provider.dart';
 import 'package:material_viewer/utils/windows.dart';
 import 'package:material_viewer/widgets/data_status_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 
 class FileBrowser extends ConsumerStatefulWidget {
   const FileBrowser({super.key});
@@ -20,9 +16,6 @@ class FileBrowser extends ConsumerStatefulWidget {
 }
 
 class _FileBrowserState extends ConsumerState<FileBrowser> {
-  final leadingWidth = 40.0;
-  final leadingHeight = 40.0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,12 +24,22 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(12, 40, 12, 0),
-            child: AppBar(title: const Text('文件')),
+            child: AppBar(
+              title: const Text('文件'),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.search),
+                ),
+                _buildLayoutButton(),
+                _buildMoreButton()
+              ],
+            ),
           ),
           const PathBreadCrumb(),
           Expanded(
             child: ref.watch(filesProvider).when(
-                  data: (data) => _buildFileListView(data),
+                  data: (data) => FilesView(data),
                   error: (error, stackTrace) =>
                       ErrorView(message: error.toString()),
                   loading: () => const LoadingView(),
@@ -47,67 +50,54 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     );
   }
 
-  ListView _buildFileListView(List<FileEntity> files) {
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 40),
-      itemCount: files.length,
-      itemBuilder: (context, index) {
-        final file = files[index];
+  Widget _buildLayoutButton() {
+    final selectedType = ref.watch(filesUIProvider).layoutType;
 
-        return ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: SizedBox(
-              width: leadingWidth,
-              height: leadingHeight,
-              child: FileThumbnail(file: file.raw, type: file.type),
-            ),
-          ),
-          visualDensity: VisualDensity.standard,
-          title: Text(
-            p.basename(file.path),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 150,
-                child: Text(
-                  DateFormat('yyyy-MM-dd hh:mm:ss').format(file.stat.modified),
-                  textAlign: TextAlign.left,
-                ),
-              ),
-              SizedBox(
-                width: 80,
-                child: file.isFile
-                    ? Text(
-                        FileUtil.getReadableSize(file.stat.size),
-                        textAlign: TextAlign.right,
-                      )
-                    : null,
-              ),
-            ],
-          ),
-          onTap: () {
-            if (file.isDirectory) {
-              ref.read(filesProvider.notifier).enterDirectory(file.path);
-              return;
-            }
-            if (file.type != FileType.video) {
-              WindowsUtil.openFile(context, file.path);
-              return;
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => VideoPlayerPage(path: file.path),
-              ),
-            );
-          },
-        );
+    return PopupMenuButton<FilesLayoutType>(
+      icon: const Icon(Icons.space_dashboard_outlined),
+      itemBuilder: (BuildContext context) {
+        return [
+          for (final type in FilesLayoutType.values)
+            CheckedPopupMenuItem(
+              value: type,
+              checked: type == selectedType,
+              child: Text(type.label),
+            )
+        ];
+      },
+      initialValue: selectedType,
+      onSelected: (value) {
+        ref.read(filesUIProvider.notifier).updateLayoutType(value);
       },
     );
   }
+
+  Widget _buildMoreButton() {
+    return PopupMenuButton<_MoreAction>(
+      icon: const Icon(Icons.more_vert),
+      itemBuilder: (BuildContext context) {
+        return [
+          const PopupMenuItem(
+            value: _MoreAction.openExplorer,
+            child: ListTile(
+              leading: Icon(Icons.open_in_new),
+              title: Text('打开文件资源管理器'),
+            ),
+          ),
+        ];
+      },
+      onSelected: (value) {
+        switch (value) {
+          case _MoreAction.openExplorer:
+            WindowsUtil.openFolder(ref.read(pathProvider).path);
+            break;
+          default:
+        }
+      },
+    );
+  }
+}
+
+enum _MoreAction {
+  openExplorer,
 }

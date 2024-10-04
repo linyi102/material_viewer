@@ -30,9 +30,10 @@ class _FileThumbnailState extends State<FileThumbnail> {
       case FileType.image:
         return Image.file(file, cacheWidth: 200, fit: BoxFit.cover);
       default:
-        return Icon(widget.type.icon);
+        return _buildIcon();
     }
   }
 
-  Icon _buildIcon() => Icon(widget.type.icon, color: widget.type.color);
+  _buildIcon() =>
+      FittedBox(child: Icon(widget.type.icon, color: widget.type.color));
 }
